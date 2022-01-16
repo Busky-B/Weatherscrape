@@ -1,0 +1,168 @@
+import requests
+from bs4 import BeautifulSoup
+from menu import menu
+import os
+import re
+
+# updates the requested page and soupvar
+def updatePage():
+    global page
+    global soup
+    page  = requests.get(url)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    
+def readChosenCity():
+    with open('chosen_city.txt', 'r') as f:
+        city = f.read()
+        if len(city) != 0 and not checkRequestError():
+            global url
+            url = url + city
+        else:
+            global runMenu
+            runMenu = False
+            print("Error, no page content")
+def getChosenCity():
+    return open('chosen_city.txt', 'r')
+
+def setChosenCity():
+    with open('chosen_city.txt', 'w') as f:
+        f.write(input("Select new city: \t"))
+
+def checkRequestError():
+      return re.search('Någonting gick fel', soup.text)
+def getNotifications(soup):
+    
+    # check if there are any notifications on site
+    r = soup.find_all('p', class_='notification-text')
+    print(type(r))
+    #print(r[0])
+    print(r[1].text)
+    print(r[0].text)
+
+def getTodayTemp(soup):
+    try:
+        # GET ELEMENT BY class
+        r = soup.find_all('span', class_='temp-high')
+        # PRINT
+        print('Dagens temperatur: ' + r[0].text)
+    except IndexError:
+        print("No Temperature found")       
+
+def getDownfall(soup):
+    try:
+        r = soup.find_all('p', class_='rain-value')
+        txt = r[0].text.lstrip()
+        txt = txt.rstrip()
+        # Lägga in rstrip också?
+        print('Dagens regn: %s' % txt)
+    except IndexError:
+        print("No Rainvalue found")
+
+
+def getWind(soup):
+    r = soup.find_all('p', class_='wind-value')
+    txt = r[0].text.lstrip()
+
+    print('Vind: %s' % txt)
+
+
+def pretty():
+    return soup.prettify()
+
+def show_week():
+    print(
+        'Monday' + 'Tuesday' + 'Wednesday \n' 
+        + '1' + '2' + '3'
+
+    )
+def run_main():
+    # Clear the screen
+    # check_os_clear() # os.system('cls')
+    # print("PRINTING SOUP")
+    # print(soup)
+    getTodayTemp(soup)
+    getDownfall(soup)
+    getWind(soup)
+    getNotifications(soup)
+
+    #input('Press anything to exit . . .')
+    # getPrecipationProbability(soup)
+
+def check_os_clear():
+    if os.name == 'nt':
+        pass
+        #os.system('cls')
+    else:
+        pass
+        #os.system('clear')
+
+def init():
+    pass
+def def_url():
+    return 'https://www.klart.se/'
+
+
+
+    
+'''
+    Globals
+'''
+# Loopswitch
+runMenu = True
+# BaseURL
+url = def_url()
+# Set the city
+city = getChosenCity().read()
+# Exit var
+exit = False
+
+if __name__ == '__main__':
+    while True:
+        check_os_clear()
+        # GET THE PAGE
+        print("Requesting: %s" % url + city)
+        page = requests.get(url + city)
+        # PARSE INTO READABLE
+        soup = BeautifulSoup(page.content, 'html.parser')
+
+        print("Chosen city: %s" % city)
+        # If cityfile is len > 0
+        if runMenu:
+            
+            # Check if the chosen city was correctly gotten
+            if not re.search("Någonting gick fel", soup.text):
+                print("A page was found \n\n")
+                #check_os_clear()
+                # Run the main method
+                run_main()
+                # TODO:
+                # show_week()
+            else:
+                # prompt for another city
+                print("Could not load Page, Error in cityfile!")
+
+        # If the cityfile is empty, prompt for a city
+        else:
+            with open('chosen_city.txt', 'w') as f:
+                f.write(input('Please choose a city . . .\n'))
+                updatePage()
+        # Main loop
+        while runMenu:
+            menu_choice = input('1) Refresh \n2) Select another day \n 3) Select city \n5) Quit \n\nSelect --> ')
+#            run_main()
+            if not menu_choice.isalnum() or not len(menu_choice) == 1:
+                check_os_clear()
+                print("Please choose a number")
+
+            elif menu_choice == '1':
+                run_main()
+            elif menu_choice == '2':
+                pass
+            elif menu_choice == '3':
+                setChosenCity()
+                getChosenCity()
+            elif menu_choice == '5':
+                exit = True
+                break
+        if exit:
+            break
